@@ -4,6 +4,9 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
+	"log"
+	"os"
+	"strings"
 )
 
 type QuestionCard struct {
@@ -13,8 +16,16 @@ type QuestionCard struct {
 
 var InvalidQuestionCardFormatErr = errors.New("invalid question card csv format")
 
-func LoadQuestionCards(r *csv.Reader) ([]QuestionCard, error) {
+func LoadQuestionCards(fileName string) ([]QuestionCard, error) {
 	var questionCards []QuestionCard
+
+	csvFile, err := os.Open(fileName)
+	defer csvFile.Close()
+	if err != nil {
+		log.Fatal()
+	}
+
+	r := csv.NewReader(csvFile)
 
 	for {
 		record, err := r.Read()
@@ -28,10 +39,9 @@ func LoadQuestionCards(r *csv.Reader) ([]QuestionCard, error) {
 		if len(record) != 2 {
 			return nil, InvalidQuestionCardFormatErr
 		}
-
 		questionCards = append(questionCards, QuestionCard{
-			Question: record[0],
-			Answer:   record[1],
+			Question: strings.TrimSpace(record[0]),
+			Answer:   strings.TrimSpace(record[1]),
 		})
 	}
 

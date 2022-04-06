@@ -1,22 +1,20 @@
 package main
 
 import (
-	"encoding/csv"
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
 func TestLoadQuestionCards_Success(t *testing.T) {
+	t.Parallel()
 	expectedCards := []QuestionCard{
 		{
-			Question: "2+2",
-			Answer:   "4",
+			Question: "5+5",
+			Answer:   "10",
 		},
 		{
-			Question: "3+3",
-			Answer:   "6",
+			Question: "7+3",
+			Answer:   "10",
 		},
 		{
 			Question: "1+1",
@@ -24,18 +22,31 @@ func TestLoadQuestionCards_Success(t *testing.T) {
 		},
 	}
 
-	var in string
-
-	for _, card := range expectedCards {
-		in += fmt.Sprintf("%v,%v\n", card.Question, card.Answer)
-	}
-
-	res, err := LoadQuestionCards(csv.NewReader(strings.NewReader(in)))
+	res, err := LoadQuestionCards("testingData/correctFormat.csv")
 
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, expectedCards, res)
 }
 
 func TestLoadQuestionCards_Err(t *testing.T) {
+	t.Parallel()
+	res, err := LoadQuestionCards("testingData/invalidFormat.csv")
 
+	assert.Nil(t, res)
+	assert.ErrorIs(t, InvalidQuestionCardFormatErr, err)
+}
+
+func TestLoadQuestionCards_SpaceTrim(t *testing.T) {
+	t.Parallel()
+	expectedQuestion := "5 + 5"
+	expectedAnswer := "10"
+
+	qcs, err := LoadQuestionCards("testingData/spaceTrim.csv")
+
+	assert.NoError(t, err)
+
+	for _, qc := range qcs {
+		assert.Equal(t, expectedQuestion, qc.Question)
+		assert.Equal(t, expectedAnswer, qc.Answer)
+	}
 }

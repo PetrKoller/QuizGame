@@ -1,34 +1,49 @@
 package main
 
 import (
-	"encoding/csv"
+	"bufio"
+	"flag"
+	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 )
 
-func StartQuiz(questionCards []QuestionCard) error {
-	for _, qc := range questionCards {
-		log.Printf("%+v\n", qc)
+func main() {
+	fileName := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer' (default \"problems.csv\")")
+	flag.Parse()
+
+	questionCards, err := LoadQuestionCards(*fileName)
+	if err != nil {
+		log.Fatal("Error: ", err)
 	}
 
-	return nil
+	correctAnswers, err := StartQuiz(questionCards, bufio.NewReader(os.Stdin))
+
+	if err != nil {
+		log.Fatal("Error: ", err)
+	}
+
+	fmt.Printf("You got right %v out of %v problems\n", correctAnswers, len(questionCards))
 }
 
-func main() {
-	fileName := "problems.csv"
+func StartQuiz(questionCards []QuestionCard, reader *bufio.Reader) (int, error) {
+	correctAns := 0
+	for i, qc := range questionCards {
+		fmt.Printf("Problem nr. %v: %v = \n", i+1, qc.Question)
+		ans, err := reader.ReadString('\n')
 
-	csvFile, err := os.Open(fileName)
-	defer csvFile.Close()
-	if err != nil {
-		log.Fatal()
+		if err == io.EOF {
+			return correctAns, nil
+		} else if err != nil {
+			return 0, err
+		}
+
+		if strings.TrimSpace(ans) == qc.Answer {
+			correctAns++
+		}
 	}
 
-	questionCards, err := LoadQuestionCards(csv.NewReader(csvFile))
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
-
-	if err = StartQuiz(questionCards); err != nil {
-		log.Fatal("Error: ", err)
-	}
+	return correctAns, nil
 }
