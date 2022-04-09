@@ -8,18 +8,20 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
-	fileName := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer' (default \"problems.csv\")")
+	filename := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
+	timeLimit := flag.Int64("limit", 30, "the time limit for the quiz in seconds")
 	flag.Parse()
 
-	questionCards, err := LoadQuestionCards(*fileName)
+	questionCards, err := LoadQuestionCards(*filename)
 	if err != nil {
 		log.Fatal("Error: ", err)
 	}
 
-	correctAnswers, err := StartQuiz(questionCards, bufio.NewReader(os.Stdin))
+	correctAnswers, err := StartQuiz(questionCards, bufio.NewReader(os.Stdin), time.Duration(*timeLimit)*time.Second)
 
 	if err != nil {
 		log.Fatal("Error: ", err)
@@ -28,22 +30,44 @@ func main() {
 	fmt.Printf("You got right %v out of %v problems\n", correctAnswers, len(questionCards))
 }
 
-func StartQuiz(questionCards []QuestionCard, reader *bufio.Reader) (int, error) {
+type ReadStringer interface {
+	ReadString(delim byte) (string, error)
+}
+
+func StartQuiz(questionCards []QuestionCard, reader ReadStringer, durationInSeconds time.Duration) (int, error) {
 	correctAns := 0
+	errCh := make(chan error)
+	ansCh := make(chan string)
+	timer := time.NewTimer(durationInSeconds)
+
 	for i, qc := range questionCards {
 		fmt.Printf("Problem nr. %v: %v = \n", i+1, qc.Question)
-		ans, err := reader.ReadString('\n')
+		go func() {
+			ans, err := reader.ReadString('\n')
+			if err != nil {
+				errCh <- err
+			}
+			ansCh <- ans
+		}()
 
-		if err == io.EOF {
+		select {
+		case ans := <-ansCh:
+			if strings.TrimSpace(ans) == qc.Answer {
+				correctAns++
+			}
+		case <-timer.C:
+			fmt.Println("Out of time")
 			return correctAns, nil
-		} else if err != nil {
-			return 0, err
-		}
+		case err := <-errCh:
+			if err == io.EOF {
+				fmt.Println("Called eof")
+				return correctAns, nil
+			}
 
-		if strings.TrimSpace(ans) == qc.Answer {
-			correctAns++
+			return 0, err
 		}
 	}
 
+	fmt.Println("You have answered all the questions")
 	return correctAns, nil
 }
