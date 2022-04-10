@@ -109,9 +109,9 @@ func TestStartQuiz_TimeLimitPassed(t *testing.T) {
 			quizStart := time.Now()
 			result, err := StartQuiz(test.qcs, &timeBlockingReadStringer{blockAfterCalls: test.blockReadAfterCalls, blockDurationInSeconds: blockDuration}, timeLimit)
 
-			quinEnd := time.Since(quizStart)
-			if quinEnd < timeLimit {
-				assert.Failf(t, "Quiz shouldn't have ended before time limit", "Time limit is %v, quiz ended after %v", timeLimit.String(), quinEnd.String())
+			quizEnd := time.Since(quizStart)
+			if quizEnd < timeLimit {
+				assert.Failf(t, "Quiz shouldn't have ended before time limit", "Time limit is %v, quiz ended after %v", timeLimit.String(), quizEnd.String())
 			}
 
 			assert.NoError(t, err)

@@ -4,8 +4,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-	"log"
-	"os"
 	"strings"
 )
 
@@ -16,19 +14,15 @@ type QuestionCard struct {
 
 var InvalidQuestionCardFormatErr = errors.New("invalid question card csv format")
 
-func LoadQuestionCards(fileName string) ([]QuestionCard, error) {
+// LoadQuestionCards loads cards from given io.Reader parameter reader and returns slice of QuestionCard.
+//Expected data format from where reader reads is CSV, default delimiter is ','.
+//Error is returned, if data format is not CSV or question card format is not fulfilled ('question,answer') or any other error is being encountered.
+func LoadQuestionCards(reader io.Reader) ([]QuestionCard, error) {
 	var questionCards []QuestionCard
-
-	csvFile, err := os.Open(fileName)
-	defer csvFile.Close()
-	if err != nil {
-		log.Fatal()
-	}
-
-	r := csv.NewReader(csvFile)
+	csvReader := csv.NewReader(reader)
 
 	for {
-		record, err := r.Read()
+		record, err := csvReader.Read()
 		if err == io.EOF {
 			break
 		}
